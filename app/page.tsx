@@ -95,6 +95,36 @@ export default function Home() {
 
   const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress } = useSound();
 
+  // ローマ字入力の揺らぎを正規化する関数
+  const normalizeRomaji = useCallback((text: string): string => {
+    return text
+      .replace(/shi/g, 'si')
+      .replace(/chi/g, 'ti')
+      .replace(/tsu/g, 'tu')
+      .replace(/fu/g, 'hu')
+      .replace(/ja/g, 'zya')
+      .replace(/ju/g, 'zyu')
+      .replace(/jo/g, 'zyo')
+      .replace(/sha/g, 'sya')
+      .replace(/shu/g, 'syu')
+      .replace(/sho/g, 'syo')
+      .replace(/cha/g, 'tya')
+      .replace(/chu/g, 'tyu')
+      .replace(/cho/g, 'tyo');
+  }, []);
+
+  // 入力が正解と一致するかチェック（正規化して比較）
+  const isInputCorrect = useCallback((input: string, answer: string): boolean => {
+    return normalizeRomaji(input) === normalizeRomaji(answer);
+  }, [normalizeRomaji]);
+
+  // 入力が正解の途中まで合っているかチェック
+  const isInputOnTrack = useCallback((input: string, answer: string): boolean => {
+    const normalizedInput = normalizeRomaji(input);
+    const normalizedAnswer = normalizeRomaji(answer);
+    return normalizedAnswer.startsWith(normalizedInput);
+  }, [normalizeRomaji]);
+
   const getWordList = useCallback((diff: Difficulty) => {
     switch (diff) {
       case 'easy':
@@ -193,13 +223,13 @@ export default function Home() {
     const value = e.target.value;
 
     // タイピング音を鳴らす（正解時を除く）
-    if (value.length > input.length && value !== currentWord.romaji) {
+    if (value.length > input.length && !isInputCorrect(value, currentWord.romaji)) {
       playKeypress();
     }
 
     setInput(value);
 
-    if (value === currentWord.romaji) {
+    if (isInputCorrect(value, currentWord.romaji)) {
       playCorrect();
       setScore(score + 1);
       setInput('');
@@ -216,7 +246,7 @@ export default function Home() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && input !== currentWord.romaji) {
+    if (e.key === 'Enter' && !isInputCorrect(input, currentWord.romaji)) {
       playError();
       setErrors(errors + 1);
       setInput('');
@@ -398,23 +428,15 @@ export default function Home() {
 
           <div className="mb-12">
             <p className="text-8xl font-bold text-red-600 mb-6">{currentWord.japanese}</p>
-            <p className="text-3xl font-mono">
-              {currentWord.romaji.split('').map((char, index) => {
-                let color = 'text-gray-400';
-                if (index < input.length) {
-                  if (input[index] === char) {
-                    color = 'text-blue-500';
-                  } else {
-                    color = 'text-red-500';
-                  }
-                }
-                return (
-                  <span key={index} className={color}>
-                    {char}
-                  </span>
-                );
-              })}
-            </p>
+            <div className="text-3xl font-mono">
+              {input.length === 0 ? (
+                <p className="text-gray-400">{currentWord.romaji}</p>
+              ) : isInputOnTrack(input, currentWord.romaji) ? (
+                <p className="text-blue-500">{currentWord.romaji}</p>
+              ) : (
+                <p className="text-red-500">{currentWord.romaji}</p>
+              )}
+            </div>
           </div>
 
           <input

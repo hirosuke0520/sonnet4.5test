@@ -3,51 +3,91 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSound } from './hooks/useSound';
 
-const WORDS = [
+const EASY_WORDS = [
   { japanese: 'すし', romaji: 'sushi' },
+  { japanese: 'うどん', romaji: 'udon' },
+  { japanese: 'そば', romaji: 'soba' },
+  { japanese: 'さけ', romaji: 'sake' },
+  { japanese: 'みず', romaji: 'mizu' },
+  { japanese: 'いぬ', romaji: 'inu' },
+  { japanese: 'ねこ', romaji: 'neko' },
+  { japanese: 'とり', romaji: 'tori' },
+];
+
+const NORMAL_WORDS = [
   { japanese: 'さしみ', romaji: 'sashimi' },
   { japanese: 'てんぷら', romaji: 'tempura' },
   { japanese: 'らーめん', romaji: 'ra-men' },
   { japanese: 'おにぎり', romaji: 'onigiri' },
   { japanese: 'たこやき', romaji: 'takoyaki' },
   { japanese: 'やきとり', romaji: 'yakitori' },
-  { japanese: 'うどん', romaji: 'udon' },
-  { japanese: 'そば', romaji: 'soba' },
   { japanese: 'とんかつ', romaji: 'tonkatsu' },
   { japanese: 'みそしる', romaji: 'misoshiru' },
   { japanese: 'ぎょうざ', romaji: 'gyouza' },
   { japanese: 'かつどん', romaji: 'katsudon' },
-  { japanese: 'おやこどん', romaji: 'oyakodon' },
-  { japanese: 'ちゃわんむし', romaji: 'chawanmushi' },
 ];
 
-const GAME_TIME = 60; // 60 seconds
-const WORD_TIME_LIMIT = 5; // 5 seconds per word
+const HARD_WORDS = [
+  { japanese: 'おやこどん', romaji: 'oyakodon' },
+  { japanese: 'ちゃわんむし', romaji: 'chawanmushi' },
+  { japanese: 'しゃぶしゃぶ', romaji: 'shabushabu' },
+  { japanese: 'すきやき', romaji: 'sukiyaki' },
+  { japanese: 'おこのみやき', romaji: 'okonomiyaki' },
+  { japanese: 'もんじゃやき', romaji: 'monjayaki' },
+  { japanese: 'やきそば', romaji: 'yakisoba' },
+  { japanese: 'ちゃーはん', romaji: 'cha-han' },
+  { japanese: 'てりやき', romaji: 'teriyaki' },
+  { japanese: 'からあげ', romaji: 'karaage' },
+];
+
+type Difficulty = 'easy' | 'normal' | 'hard';
+
+const DIFFICULTY_CONFIG = {
+  easy: { timeLimit: 8, gameTime: 60 },
+  normal: { timeLimit: 5, gameTime: 60 },
+  hard: { timeLimit: 3, gameTime: 60 },
+};
 
 export default function Home() {
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'result'>('menu');
-  const [currentWord, setCurrentWord] = useState(WORDS[0]);
+  const [difficulty, setDifficulty] = useState<Difficulty>('normal');
+  const [currentWord, setCurrentWord] = useState(NORMAL_WORDS[0]);
   const [input, setInput] = useState('');
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(GAME_TIME);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [errors, setErrors] = useState(0);
-  const [wordTimeLeft, setWordTimeLeft] = useState(WORD_TIME_LIMIT);
+  const [wordTimeLeft, setWordTimeLeft] = useState(5);
 
   const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress } = useSound();
 
-  const getRandomWord = useCallback(() => {
-    return WORDS[Math.floor(Math.random() * WORDS.length)];
+  const getWordList = useCallback((diff: Difficulty) => {
+    switch (diff) {
+      case 'easy':
+        return EASY_WORDS;
+      case 'normal':
+        return NORMAL_WORDS;
+      case 'hard':
+        return HARD_WORDS;
+    }
   }, []);
 
-  const startGame = () => {
+  const getRandomWord = useCallback(() => {
+    const words = getWordList(difficulty);
+    return words[Math.floor(Math.random() * words.length)];
+  }, [difficulty, getWordList]);
+
+  const startGame = (selectedDifficulty: Difficulty) => {
     playGameStart();
+    setDifficulty(selectedDifficulty);
     setGameState('playing');
     setScore(0);
     setErrors(0);
-    setTimeLeft(GAME_TIME);
-    setWordTimeLeft(WORD_TIME_LIMIT);
+    const config = DIFFICULTY_CONFIG[selectedDifficulty];
+    setTimeLeft(config.gameTime);
+    setWordTimeLeft(config.timeLimit);
     setInput('');
-    setCurrentWord(getRandomWord());
+    const words = getWordList(selectedDifficulty);
+    setCurrentWord(words[Math.floor(Math.random() * words.length)]);
   };
 
   // 全体の時間管理
@@ -84,9 +124,9 @@ export default function Home() {
       setErrors(errors + 1);
       setInput('');
       setCurrentWord(getRandomWord());
-      setWordTimeLeft(WORD_TIME_LIMIT);
+      setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
     }
-  }, [gameState, wordTimeLeft, errors, playError, getRandomWord]);
+  }, [gameState, wordTimeLeft, errors, playError, getRandomWord, difficulty]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -103,7 +143,7 @@ export default function Home() {
       setScore(score + 1);
       setInput('');
       setCurrentWord(getRandomWord());
-      setWordTimeLeft(WORD_TIME_LIMIT);
+      setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
     }
   };
 
@@ -113,24 +153,80 @@ export default function Home() {
       setErrors(errors + 1);
       setInput('');
       setCurrentWord(getRandomWord());
-      setWordTimeLeft(WORD_TIME_LIMIT);
+      setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
     }
   };
 
   if (gameState === 'menu') {
     return (
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-4xl px-4">
           <h1 className="text-6xl font-bold text-red-600 mb-4">🍣 寿司打</h1>
-          <p className="text-xl text-gray-700 mb-8">日本語タイピングゲーム</p>
-          <button
-            onClick={startGame}
-            className="bg-red-500 hover:bg-red-600 text-white font-bold text-2xl px-12 py-4 rounded-full transition-colors shadow-lg"
-          >
-            スタート
-          </button>
-          <div className="mt-8 text-gray-600">
-            <p>制限時間: {GAME_TIME}秒</p>
+          <p className="text-xl text-gray-700 mb-12">日本語タイピングゲーム</p>
+
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">難易度を選択</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Easy */}
+              <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="mb-4">
+                  <h3 className="text-3xl font-bold text-green-600 mb-2">イージー</h3>
+                  <p className="text-gray-600 text-sm">短い単語 (3-4文字)</p>
+                </div>
+                <div className="mb-6 text-left text-gray-700">
+                  <p className="mb-1">⏱️ 制限時間: 60秒</p>
+                  <p className="mb-1">⚡ 1問: 8秒</p>
+                  <p className="text-xs text-gray-500 mt-2">例: すし、ねこ、みず</p>
+                </div>
+                <button
+                  onClick={() => startGame('easy')}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-xl py-4 rounded-full transition-colors shadow-lg"
+                >
+                  スタート
+                </button>
+              </div>
+
+              {/* Normal */}
+              <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow border-4 border-orange-300">
+                <div className="mb-4">
+                  <h3 className="text-3xl font-bold text-orange-600 mb-2">ノーマル</h3>
+                  <p className="text-gray-600 text-sm">中程度の単語 (5-8文字)</p>
+                </div>
+                <div className="mb-6 text-left text-gray-700">
+                  <p className="mb-1">⏱️ 制限時間: 60秒</p>
+                  <p className="mb-1">⚡ 1問: 5秒</p>
+                  <p className="text-xs text-gray-500 mt-2">例: てんぷら、おにぎり</p>
+                </div>
+                <button
+                  onClick={() => startGame('normal')}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl py-4 rounded-full transition-colors shadow-lg"
+                >
+                  スタート
+                </button>
+              </div>
+
+              {/* Hard */}
+              <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="mb-4">
+                  <h3 className="text-3xl font-bold text-red-600 mb-2">ハード</h3>
+                  <p className="text-gray-600 text-sm">長い単語 (9-12文字)</p>
+                </div>
+                <div className="mb-6 text-left text-gray-700">
+                  <p className="mb-1">⏱️ 制限時間: 60秒</p>
+                  <p className="mb-1">⚡ 1問: 3秒</p>
+                  <p className="text-xs text-gray-500 mt-2">例: おこのみやき、しゃぶしゃぶ</p>
+                </div>
+                <button
+                  onClick={() => startGame('hard')}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-xl py-4 rounded-full transition-colors shadow-lg"
+                >
+                  スタート
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-gray-600">
             <p className="mt-2">表示される日本語をローマ字で入力してください</p>
           </div>
         </div>
@@ -165,10 +261,10 @@ export default function Home() {
             </div>
           </div>
           <button
-            onClick={startGame}
+            onClick={() => setGameState('menu')}
             className="bg-red-500 hover:bg-red-600 text-white font-bold text-xl px-10 py-3 rounded-full transition-colors shadow-lg"
           >
-            もう一度プレイ
+            メニューに戻る
           </button>
         </div>
       </div>
@@ -196,13 +292,13 @@ export default function Home() {
             <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-100 ${
-                  wordTimeLeft / WORD_TIME_LIMIT > 0.5
+                  wordTimeLeft / DIFFICULTY_CONFIG[difficulty].timeLimit > 0.5
                     ? 'bg-green-500'
-                    : wordTimeLeft / WORD_TIME_LIMIT > 0.25
+                    : wordTimeLeft / DIFFICULTY_CONFIG[difficulty].timeLimit > 0.25
                     ? 'bg-yellow-500'
                     : 'bg-red-500'
                 }`}
-                style={{ width: `${(wordTimeLeft / WORD_TIME_LIMIT) * 100}%` }}
+                style={{ width: `${(wordTimeLeft / DIFFICULTY_CONFIG[difficulty].timeLimit) * 100}%` }}
               />
             </div>
             <p className="text-sm text-gray-500 mt-2">

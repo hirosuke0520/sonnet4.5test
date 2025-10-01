@@ -1,103 +1,170 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+
+const WORDS = [
+  { japanese: 'すし', romaji: 'sushi' },
+  { japanese: 'さしみ', romaji: 'sashimi' },
+  { japanese: 'てんぷら', romaji: 'tempura' },
+  { japanese: 'らーめん', romaji: 'ra-men' },
+  { japanese: 'おにぎり', romaji: 'onigiri' },
+  { japanese: 'たこやき', romaji: 'takoyaki' },
+  { japanese: 'やきとり', romaji: 'yakitori' },
+  { japanese: 'うどん', romaji: 'udon' },
+  { japanese: 'そば', romaji: 'soba' },
+  { japanese: 'とんかつ', romaji: 'tonkatsu' },
+  { japanese: 'みそしる', romaji: 'misoshiru' },
+  { japanese: 'ぎょうざ', romaji: 'gyouza' },
+  { japanese: 'かつどん', romaji: 'katsudon' },
+  { japanese: 'おやこどん', romaji: 'oyakodon' },
+  { japanese: 'ちゃわんむし', romaji: 'chawanmushi' },
+];
+
+const GAME_TIME = 60; // 60 seconds
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [gameState, setGameState] = useState<'menu' | 'playing' | 'result'>('menu');
+  const [currentWord, setCurrentWord] = useState(WORDS[0]);
+  const [input, setInput] = useState('');
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(GAME_TIME);
+  const [errors, setErrors] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const getRandomWord = useCallback(() => {
+    return WORDS[Math.floor(Math.random() * WORDS.length)];
+  }, []);
+
+  const startGame = () => {
+    setGameState('playing');
+    setScore(0);
+    setErrors(0);
+    setTimeLeft(GAME_TIME);
+    setInput('');
+    setCurrentWord(getRandomWord());
+  };
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (gameState === 'playing' && timeLeft === 0) {
+      setGameState('result');
+    }
+  }, [gameState, timeLeft]);
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInput(value);
+
+    if (value === currentWord.romaji) {
+      setScore(score + 1);
+      setInput('');
+      setCurrentWord(getRandomWord());
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && input !== currentWord.romaji) {
+      setErrors(errors + 1);
+      setInput('');
+    }
+  };
+
+  if (gameState === 'menu') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-6xl font-bold text-red-600 mb-4">🍣 寿司打</h1>
+          <p className="text-xl text-gray-700 mb-8">日本語タイピングゲーム</p>
+          <button
+            onClick={startGame}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold text-2xl px-12 py-4 rounded-full transition-colors shadow-lg"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            スタート
+          </button>
+          <div className="mt-8 text-gray-600">
+            <p>制限時間: {GAME_TIME}秒</p>
+            <p className="mt-2">表示される日本語をローマ字で入力してください</p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </div>
+    );
+  }
+
+  if (gameState === 'result') {
+    const accuracy = score + errors > 0 ? Math.round((score / (score + errors)) * 100) : 0;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-red-600 mb-8">結果発表</h1>
+          <div className="bg-white rounded-3xl shadow-2xl p-12 mb-8">
+            <div className="mb-6">
+              <p className="text-gray-600 text-lg">スコア</p>
+              <p className="text-6xl font-bold text-red-500">{score}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-8 mt-8">
+              <div>
+                <p className="text-gray-600">正解</p>
+                <p className="text-3xl font-bold text-green-500">{score}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">ミス</p>
+                <p className="text-3xl font-bold text-red-400">{errors}</p>
+              </div>
+            </div>
+            <div className="mt-8">
+              <p className="text-gray-600">正確率</p>
+              <p className="text-3xl font-bold text-blue-500">{accuracy}%</p>
+            </div>
+          </div>
+          <button
+            onClick={startGame}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold text-xl px-10 py-3 rounded-full transition-colors shadow-lg"
+          >
+            もう一度プレイ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
+      <div className="w-full max-w-4xl px-4">
+        <div className="flex justify-between items-center mb-12">
+          <div className="text-2xl font-bold text-gray-700">
+            スコア: <span className="text-red-500">{score}</span>
+          </div>
+          <div className="text-2xl font-bold text-gray-700">
+            残り時間: <span className="text-blue-500">{timeLeft}秒</span>
+          </div>
+          <div className="text-2xl font-bold text-gray-700">
+            ミス: <span className="text-red-400">{errors}</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-2xl p-16 text-center">
+          <div className="mb-12">
+            <p className="text-8xl font-bold text-red-600 mb-6">{currentWord.japanese}</p>
+            <p className="text-3xl text-gray-400">{currentWord.romaji}</p>
+          </div>
+
+          <input
+            type="text"
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="w-full text-4xl text-center border-b-4 border-red-300 focus:border-red-500 outline-none py-4 transition-colors"
+            placeholder="ここに入力..."
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+
+        <div className="mt-8 text-center text-gray-600">
+          <p>正しく入力すると自動的に次の単語に進みます</p>
+          <p className="mt-2">間違えた場合はEnterキーでスキップできます</p>
+        </div>
+      </div>
     </div>
   );
 }

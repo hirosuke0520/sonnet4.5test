@@ -93,7 +93,7 @@ export default function Home() {
   const [totalWords, setTotalWords] = useState(20);
   const [perfectClear, setPerfectClear] = useState(false);
 
-  const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress } = useSound();
+  const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress, playMissType } = useSound();
 
   // ローマ字入力の揺らぎを正規化する関数
   const normalizeRomaji = useCallback((text: string): string => {
@@ -222,9 +222,17 @@ export default function Home() {
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
-    // タイピング音を鳴らす（正解時を除く）
-    if (value.length > input.length && !isInputCorrect(value, currentWord.romaji)) {
-      playKeypress();
+    // 入力が増えた場合のみ音を鳴らす
+    if (value.length > input.length) {
+      // 正解ルートから外れた瞬間にミスタイプ音
+      const wasOnTrack = input.length === 0 || isInputOnTrack(input, currentWord.romaji);
+      const isOnTrack = isInputOnTrack(value, currentWord.romaji);
+
+      if (wasOnTrack && !isOnTrack) {
+        playMissType();
+      } else if (!isInputCorrect(value, currentWord.romaji)) {
+        playKeypress();
+      }
     }
 
     setInput(value);

@@ -123,6 +123,25 @@ export function useSound() {
     oscillator.stop(ctx.currentTime + 0.03);
   }, [getAudioContext]);
 
+  const playMissType = useCallback(() => {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // ミスタイプ音: 短い高音から低音へのスライド
+    oscillator.frequency.setValueAtTime(600, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.08);
+
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.08);
+  }, [getAudioContext]);
+
   return {
     playCorrect,
     playError,
@@ -130,5 +149,6 @@ export function useSound() {
     playGameEnd,
     playTick,
     playKeypress,
+    playMissType,
   };
 }

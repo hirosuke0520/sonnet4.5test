@@ -12,6 +12,18 @@ const EASY_WORDS = [
   { japanese: 'いぬ', romaji: 'inu' },
   { japanese: 'ねこ', romaji: 'neko' },
   { japanese: 'とり', romaji: 'tori' },
+  { japanese: 'かに', romaji: 'kani' },
+  { japanese: 'たこ', romaji: 'tako' },
+  { japanese: 'さる', romaji: 'saru' },
+  { japanese: 'くま', romaji: 'kuma' },
+  { japanese: 'はし', romaji: 'hashi' },
+  { japanese: 'ふね', romaji: 'fune' },
+  { japanese: 'ほし', romaji: 'hoshi' },
+  { japanese: 'かぜ', romaji: 'kaze' },
+  { japanese: 'あめ', romaji: 'ame' },
+  { japanese: 'ゆき', romaji: 'yuki' },
+  { japanese: 'くも', romaji: 'kumo' },
+  { japanese: 'にじ', romaji: 'niji' },
 ];
 
 const NORMAL_WORDS = [
@@ -25,6 +37,16 @@ const NORMAL_WORDS = [
   { japanese: 'みそしる', romaji: 'misoshiru' },
   { japanese: 'ぎょうざ', romaji: 'gyouza' },
   { japanese: 'かつどん', romaji: 'katsudon' },
+  { japanese: 'にくじゃが', romaji: 'nikujaga' },
+  { japanese: 'はんばーぐ', romaji: 'hanba-gu' },
+  { japanese: 'かれーらいす', romaji: 'kare-raisu' },
+  { japanese: 'おむらいす', romaji: 'omuraisu' },
+  { japanese: 'すぱげってぃ', romaji: 'supagetti' },
+  { japanese: 'ぴざ', romaji: 'piza' },
+  { japanese: 'さらだ', romaji: 'sarada' },
+  { japanese: 'すーぷ', romaji: 'su-pu' },
+  { japanese: 'ぱん', romaji: 'pan' },
+  { japanese: 'けーき', romaji: 'ke-ki' },
 ];
 
 const HARD_WORDS = [
@@ -38,6 +60,16 @@ const HARD_WORDS = [
   { japanese: 'ちゃーはん', romaji: 'cha-han' },
   { japanese: 'てりやき', romaji: 'teriyaki' },
   { japanese: 'からあげ', romaji: 'karaage' },
+  { japanese: 'えびふらい', romaji: 'ebifurai' },
+  { japanese: 'はんばーがー', romaji: 'hanba-ga-' },
+  { japanese: 'すてーき', romaji: 'sute-ki' },
+  { japanese: 'おーぶんとーすと', romaji: 'o-bunto-suto' },
+  { japanese: 'ふれんちとーすと', romaji: 'furenchito-suto' },
+  { japanese: 'ぱんけーき', romaji: 'panke-ki' },
+  { japanese: 'どーなつ', romaji: 'do-natsu' },
+  { japanese: 'ちょこれーと', romaji: 'chokore-to' },
+  { japanese: 'あいすくりーむ', romaji: 'aisukuri-mu' },
+  { japanese: 'ぷりん', romaji: 'purin' },
 ];
 
 type Difficulty = 'easy' | 'normal' | 'hard';
@@ -57,6 +89,9 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [errors, setErrors] = useState(0);
   const [wordTimeLeft, setWordTimeLeft] = useState(5);
+  const [remainingWords, setRemainingWords] = useState<typeof EASY_WORDS>([]);
+  const [totalWords, setTotalWords] = useState(20);
+  const [perfectClear, setPerfectClear] = useState(false);
 
   const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress } = useSound();
 
@@ -71,10 +106,24 @@ export default function Home() {
     }
   }, []);
 
-  const getRandomWord = useCallback(() => {
-    const words = getWordList(difficulty);
-    return words[Math.floor(Math.random() * words.length)];
-  }, [difficulty, getWordList]);
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  const getNextWord = useCallback(() => {
+    if (remainingWords.length > 0) {
+      const nextWord = remainingWords[0];
+      setCurrentWord(nextWord);
+      setRemainingWords(remainingWords.slice(1));
+      return true;
+    }
+    return false;
+  }, [remainingWords]);
 
   const startGame = (selectedDifficulty: Difficulty) => {
     playGameStart();
@@ -82,12 +131,18 @@ export default function Home() {
     setGameState('playing');
     setScore(0);
     setErrors(0);
+    setPerfectClear(false);
     const config = DIFFICULTY_CONFIG[selectedDifficulty];
     setTimeLeft(config.gameTime);
     setWordTimeLeft(config.timeLimit);
     setInput('');
+
+    // シャッフルした単語リストを準備
     const words = getWordList(selectedDifficulty);
-    setCurrentWord(words[Math.floor(Math.random() * words.length)]);
+    const shuffled = shuffleArray(words);
+    setTotalWords(shuffled.length);
+    setCurrentWord(shuffled[0]);
+    setRemainingWords(shuffled.slice(1));
   };
 
   // 全体の時間管理
@@ -123,10 +178,16 @@ export default function Home() {
       playError();
       setErrors(errors + 1);
       setInput('');
-      setCurrentWord(getRandomWord());
-      setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
+      const hasNext = getNextWord();
+      if (!hasNext) {
+        // 全問終了
+        playGameEnd();
+        setGameState('result');
+      } else {
+        setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
+      }
     }
-  }, [gameState, wordTimeLeft, errors, playError, getRandomWord, difficulty]);
+  }, [gameState, wordTimeLeft, errors, playError, getNextWord, difficulty, playGameEnd]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -142,8 +203,15 @@ export default function Home() {
       playCorrect();
       setScore(score + 1);
       setInput('');
-      setCurrentWord(getRandomWord());
-      setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
+      const hasNext = getNextWord();
+      if (!hasNext) {
+        // 全問クリア！
+        setPerfectClear(true);
+        playGameEnd();
+        setGameState('result');
+      } else {
+        setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
+      }
     }
   };
 
@@ -152,8 +220,14 @@ export default function Home() {
       playError();
       setErrors(errors + 1);
       setInput('');
-      setCurrentWord(getRandomWord());
-      setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
+      const hasNext = getNextWord();
+      if (!hasNext) {
+        // 全問終了
+        playGameEnd();
+        setGameState('result');
+      } else {
+        setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
+      }
     }
   };
 
@@ -239,11 +313,17 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
         <div className="text-center">
+          {perfectClear && (
+            <div className="mb-6 animate-bounce">
+              <p className="text-7xl">🎉</p>
+              <p className="text-4xl font-bold text-yellow-500 mt-4">完全クリア！</p>
+            </div>
+          )}
           <h1 className="text-5xl font-bold text-red-600 mb-8">結果発表</h1>
           <div className="bg-white rounded-3xl shadow-2xl p-12 mb-8">
             <div className="mb-6">
               <p className="text-gray-600 text-lg">スコア</p>
-              <p className="text-6xl font-bold text-red-500">{score}</p>
+              <p className="text-6xl font-bold text-red-500">{score}/{totalWords}</p>
             </div>
             <div className="grid grid-cols-2 gap-8 mt-8">
               <div>
@@ -259,6 +339,13 @@ export default function Home() {
               <p className="text-gray-600">正確率</p>
               <p className="text-3xl font-bold text-blue-500">{accuracy}%</p>
             </div>
+            {perfectClear && (
+              <div className="mt-8 p-4 bg-yellow-100 rounded-2xl">
+                <p className="text-lg font-bold text-yellow-700">
+                  全{totalWords}問を制限時間内にクリア！
+                </p>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setGameState('menu')}
@@ -276,10 +363,13 @@ export default function Home() {
       <div className="w-full max-w-4xl px-4">
         <div className="flex justify-between items-center mb-12">
           <div className="text-2xl font-bold text-gray-700">
-            スコア: <span className="text-red-500">{score}</span>
+            残り: <span className="text-purple-600">{totalWords - score}問</span>
           </div>
           <div className="text-2xl font-bold text-gray-700">
-            残り時間: <span className="text-blue-500">{timeLeft}秒</span>
+            スコア: <span className="text-red-500">{score}/{totalWords}</span>
+          </div>
+          <div className="text-2xl font-bold text-gray-700">
+            時間: <span className="text-blue-500">{timeLeft}秒</span>
           </div>
           <div className="text-2xl font-bold text-gray-700">
             ミス: <span className="text-red-400">{errors}</span>

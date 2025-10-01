@@ -212,7 +212,23 @@ export default function Home() {
 
           <div className="mb-12">
             <p className="text-8xl font-bold text-red-600 mb-6">{currentWord.japanese}</p>
-            <p className="text-3xl text-gray-400">{currentWord.romaji}</p>
+            <p className="text-3xl font-mono">
+              {currentWord.romaji.split('').map((char, index) => {
+                let color = 'text-gray-400';
+                if (index < input.length) {
+                  if (input[index] === char) {
+                    color = 'text-blue-500';
+                  } else {
+                    color = 'text-red-500';
+                  }
+                }
+                return (
+                  <span key={index} className={color}>
+                    {char}
+                  </span>
+                );
+              })}
+            </p>
           </div>
 
           <input

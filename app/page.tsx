@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSound } from './hooks/useSound';
 
 const WORDS = [
   { japanese: 'すし', romaji: 'sushi' },
@@ -30,11 +31,14 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [errors, setErrors] = useState(0);
 
+  const { playCorrect, playError, playGameStart, playGameEnd, playTick } = useSound();
+
   const getRandomWord = useCallback(() => {
     return WORDS[Math.floor(Math.random() * WORDS.length)];
   }, []);
 
   const startGame = () => {
+    playGameStart();
     setGameState('playing');
     setScore(0);
     setErrors(0);
@@ -45,18 +49,25 @@ export default function Home() {
 
   useEffect(() => {
     if (gameState === 'playing' && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      const timer = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+        if (timeLeft <= 10) {
+          playTick();
+        }
+      }, 1000);
       return () => clearTimeout(timer);
     } else if (gameState === 'playing' && timeLeft === 0) {
+      playGameEnd();
       setGameState('result');
     }
-  }, [gameState, timeLeft]);
+  }, [gameState, timeLeft, playTick, playGameEnd]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInput(value);
 
     if (value === currentWord.romaji) {
+      playCorrect();
       setScore(score + 1);
       setInput('');
       setCurrentWord(getRandomWord());
@@ -65,8 +76,10 @@ export default function Home() {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && input !== currentWord.romaji) {
+      playError();
       setErrors(errors + 1);
       setInput('');
+      setCurrentWord(getRandomWord());
     }
   };
 

@@ -22,6 +22,7 @@ const WORDS = [
 ];
 
 const GAME_TIME = 60; // 60 seconds
+const WORD_TIME_LIMIT = 5; // 5 seconds per word
 
 export default function Home() {
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'result'>('menu');
@@ -30,6 +31,7 @@ export default function Home() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [errors, setErrors] = useState(0);
+  const [wordTimeLeft, setWordTimeLeft] = useState(WORD_TIME_LIMIT);
 
   const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress } = useSound();
 
@@ -43,10 +45,12 @@ export default function Home() {
     setScore(0);
     setErrors(0);
     setTimeLeft(GAME_TIME);
+    setWordTimeLeft(WORD_TIME_LIMIT);
     setInput('');
     setCurrentWord(getRandomWord());
   };
 
+  // 全体の時間管理
   useEffect(() => {
     if (gameState === 'playing' && timeLeft > 0) {
       const timer = setTimeout(() => {
@@ -61,6 +65,28 @@ export default function Home() {
       setGameState('result');
     }
   }, [gameState, timeLeft, playTick, playGameEnd]);
+
+  // 単語ごとの時間管理
+  useEffect(() => {
+    if (gameState === 'playing' && wordTimeLeft > 0) {
+      const timer = setInterval(() => {
+        setWordTimeLeft((prev) => {
+          if (prev <= 0.01) {
+            return 0;
+          }
+          return prev - 0.01;
+        });
+      }, 10);
+      return () => clearInterval(timer);
+    } else if (gameState === 'playing' && wordTimeLeft <= 0) {
+      // 時間切れ - ミスとして次の単語へ
+      playError();
+      setErrors(errors + 1);
+      setInput('');
+      setCurrentWord(getRandomWord());
+      setWordTimeLeft(WORD_TIME_LIMIT);
+    }
+  }, [gameState, wordTimeLeft, errors, playError, getRandomWord]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -77,6 +103,7 @@ export default function Home() {
       setScore(score + 1);
       setInput('');
       setCurrentWord(getRandomWord());
+      setWordTimeLeft(WORD_TIME_LIMIT);
     }
   };
 
@@ -86,6 +113,7 @@ export default function Home() {
       setErrors(errors + 1);
       setInput('');
       setCurrentWord(getRandomWord());
+      setWordTimeLeft(WORD_TIME_LIMIT);
     }
   };
 
@@ -163,6 +191,25 @@ export default function Home() {
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-16 text-center">
+          {/* 単語ごとの制限時間メーター */}
+          <div className="mb-8">
+            <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-100 ${
+                  wordTimeLeft / WORD_TIME_LIMIT > 0.5
+                    ? 'bg-green-500'
+                    : wordTimeLeft / WORD_TIME_LIMIT > 0.25
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
+                }`}
+                style={{ width: `${(wordTimeLeft / WORD_TIME_LIMIT) * 100}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              {wordTimeLeft.toFixed(1)}秒
+            </p>
+          </div>
+
           <div className="mb-12">
             <p className="text-8xl font-bold text-red-600 mb-6">{currentWord.japanese}</p>
             <p className="text-3xl text-gray-400">{currentWord.romaji}</p>

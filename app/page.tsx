@@ -31,7 +31,7 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [errors, setErrors] = useState(0);
 
-  const { playCorrect, playError, playGameStart, playGameEnd, playTick } = useSound();
+  const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress } = useSound();
 
   const getRandomWord = useCallback(() => {
     return WORDS[Math.floor(Math.random() * WORDS.length)];
@@ -64,6 +64,12 @@ export default function Home() {
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+
+    // タイピング音を鳴らす（正解時を除く）
+    if (value.length > input.length && value !== currentWord.romaji) {
+      playKeypress();
+    }
+
     setInput(value);
 
     if (value === currentWord.romaji) {

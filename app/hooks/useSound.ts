@@ -106,11 +106,29 @@ export function useSound() {
     oscillator.stop(ctx.currentTime + 0.05);
   }, [getAudioContext]);
 
+  const playKeypress = useCallback(() => {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.frequency.setValueAtTime(400, ctx.currentTime);
+
+    gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.03);
+  }, [getAudioContext]);
+
   return {
     playCorrect,
     playError,
     playGameStart,
     playGameEnd,
     playTick,
+    playKeypress,
   };
 }

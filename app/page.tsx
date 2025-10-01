@@ -224,13 +224,13 @@ export default function Home() {
 
     // 入力が増えた場合のみ音を鳴らす
     if (value.length > input.length) {
-      // 正解ルートから外れた瞬間にミスタイプ音
-      const wasOnTrack = input.length === 0 || isInputOnTrack(input, currentWord.romaji);
       const isOnTrack = isInputOnTrack(value, currentWord.romaji);
 
-      if (wasOnTrack && !isOnTrack) {
+      if (!isOnTrack) {
+        // 正解ルートから外れている場合は常にミスタイプ音
         playMissType();
       } else if (!isInputCorrect(value, currentWord.romaji)) {
+        // 正解ルート上の通常タイピング音
         playKeypress();
       }
     }

@@ -96,6 +96,8 @@ export default function Home() {
   const [maxCombo, setMaxCombo] = useState(0);
   const [bonusScore, setBonusScore] = useState(0);
   const [showComboBreak, setShowComboBreak] = useState(false);
+  const [totalChars, setTotalChars] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress, playMissType } = useSound();
 
@@ -179,6 +181,8 @@ export default function Home() {
     setMaxCombo(0);
     setBonusScore(0);
     setShowComboBreak(false);
+    setTotalChars(0);
+    setStartTime(Date.now());
     const config = DIFFICULTY_CONFIG[selectedDifficulty];
     setTimeLeft(config.gameTime);
     setWordTimeLeft(config.timeLimit);
@@ -263,6 +267,7 @@ export default function Home() {
     if (isInputCorrect(value, currentWord.romaji)) {
       playCorrect();
       setScore(score + 1);
+      setTotalChars(totalChars + currentWord.romaji.length);
 
       // コンボ加算
       const newCombo = combo + 1;
@@ -391,6 +396,10 @@ export default function Home() {
 
   if (gameState === 'result') {
     const accuracy = score + errors > 0 ? Math.round((score / (score + errors)) * 100) : 0;
+    const elapsedTime = startTime ? (Date.now() - startTime) / 1000 / 60 : 0; // 分単位
+    const wpm = elapsedTime > 0 ? Math.round(totalChars / 5 / elapsedTime) : 0; // 1単語=5文字として計算
+    const cpm = elapsedTime > 0 ? Math.round(totalChars / elapsedTime) : 0; // CPM (Characters Per Minute)
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
         <div className="text-center">
@@ -427,6 +436,16 @@ export default function Home() {
               <div>
                 <p className="text-gray-600">最大コンボ</p>
                 <p className="text-3xl font-bold text-purple-500">{maxCombo}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-8 mt-8">
+              <div>
+                <p className="text-gray-600">タイプ速度</p>
+                <p className="text-3xl font-bold text-indigo-500">{wpm} WPM</p>
+              </div>
+              <div>
+                <p className="text-gray-600">文字/分</p>
+                <p className="text-3xl font-bold text-teal-500">{cpm} CPM</p>
               </div>
             </div>
             {perfectClear && (

@@ -72,12 +72,13 @@ const HARD_WORDS = [
   { japanese: 'ぷりん', romaji: 'purin' },
 ];
 
-type Difficulty = 'easy' | 'normal' | 'hard';
+type Difficulty = 'easy' | 'normal' | 'hard' | 'practice';
 
 const DIFFICULTY_CONFIG = {
   easy: { timeLimit: 8, gameTime: 60 },
   normal: { timeLimit: 5, gameTime: 60 },
   hard: { timeLimit: 3, gameTime: 60 },
+  practice: { timeLimit: 999, gameTime: 999 }, // 実質無制限
 };
 
 export default function Home() {
@@ -139,6 +140,8 @@ export default function Home() {
         return NORMAL_WORDS;
       case 'hard':
         return HARD_WORDS;
+      case 'practice':
+        return NORMAL_WORDS; // 練習モードはノーマルの単語を使用
     }
   }, []);
 
@@ -326,7 +329,7 @@ export default function Home() {
 
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">難易度を選択</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Easy */}
               <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow">
                 <div className="mb-4">
@@ -379,6 +382,25 @@ export default function Home() {
                 <button
                   onClick={() => startGame('hard')}
                   className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-xl py-4 rounded-full transition-colors shadow-lg"
+                >
+                  スタート
+                </button>
+              </div>
+
+              {/* Practice */}
+              <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow border-4 border-blue-300">
+                <div className="mb-4">
+                  <h3 className="text-3xl font-bold text-blue-600 mb-2">練習</h3>
+                  <p className="text-gray-600 text-sm">時間制限なし</p>
+                </div>
+                <div className="mb-6 text-left text-gray-700">
+                  <p className="mb-1">⏱️ 制限時間: なし</p>
+                  <p className="mb-1">⚡ 1問: 制限なし</p>
+                  <p className="text-xs text-gray-500 mt-2">じっくり練習できます</p>
+                </div>
+                <button
+                  onClick={() => startGame('practice')}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-xl py-4 rounded-full transition-colors shadow-lg"
                 >
                   スタート
                 </button>

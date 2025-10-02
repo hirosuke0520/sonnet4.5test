@@ -92,6 +92,10 @@ export default function Home() {
   const [remainingWords, setRemainingWords] = useState<typeof EASY_WORDS>([]);
   const [totalWords, setTotalWords] = useState(20);
   const [perfectClear, setPerfectClear] = useState(false);
+  const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const [bonusScore, setBonusScore] = useState(0);
+  const [showComboBreak, setShowComboBreak] = useState(false);
 
   const { playCorrect, playError, playGameStart, playGameEnd, playTick, playKeypress, playMissType } = useSound();
 
@@ -145,6 +149,15 @@ export default function Home() {
     return shuffled;
   };
 
+  // コンボボーナスの計算
+  const calculateComboBonus = useCallback((currentCombo: number): number => {
+    if (currentCombo < 3) return 0;
+    if (currentCombo < 5) return 1;
+    if (currentCombo < 10) return 2;
+    if (currentCombo < 20) return 3;
+    return 5;
+  }, []);
+
   const getNextWord = useCallback(() => {
     if (remainingWords.length > 0) {
       const nextWord = remainingWords[0];
@@ -162,6 +175,10 @@ export default function Home() {
     setScore(0);
     setErrors(0);
     setPerfectClear(false);
+    setCombo(0);
+    setMaxCombo(0);
+    setBonusScore(0);
+    setShowComboBreak(false);
     const config = DIFFICULTY_CONFIG[selectedDifficulty];
     setTimeLeft(config.gameTime);
     setWordTimeLeft(config.timeLimit);
@@ -208,6 +225,12 @@ export default function Home() {
       playError();
       setErrors(errors + 1);
       setInput('');
+      // コンボリセット
+      if (combo > 0) {
+        setShowComboBreak(true);
+        setTimeout(() => setShowComboBreak(false), 1000);
+      }
+      setCombo(0);
       const hasNext = getNextWord();
       if (!hasNext) {
         // 全問終了
@@ -217,7 +240,7 @@ export default function Home() {
         setWordTimeLeft(DIFFICULTY_CONFIG[difficulty].timeLimit);
       }
     }
-  }, [gameState, wordTimeLeft, errors, playError, getNextWord, difficulty, playGameEnd]);
+  }, [gameState, wordTimeLeft, errors, combo, playError, getNextWord, difficulty, playGameEnd]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -240,6 +263,20 @@ export default function Home() {
     if (isInputCorrect(value, currentWord.romaji)) {
       playCorrect();
       setScore(score + 1);
+
+      // コンボ加算
+      const newCombo = combo + 1;
+      setCombo(newCombo);
+      if (newCombo > maxCombo) {
+        setMaxCombo(newCombo);
+      }
+
+      // ボーナスポイント計算
+      const bonus = calculateComboBonus(newCombo);
+      if (bonus > 0) {
+        setBonusScore(bonusScore + bonus);
+      }
+
       setInput('');
       const hasNext = getNextWord();
       if (!hasNext) {
@@ -258,6 +295,12 @@ export default function Home() {
       playError();
       setErrors(errors + 1);
       setInput('');
+      // コンボリセット
+      if (combo > 0) {
+        setShowComboBreak(true);
+        setTimeout(() => setShowComboBreak(false), 1000);
+      }
+      setCombo(0);
       const hasNext = getNextWord();
       if (!hasNext) {
         // 全問終了
@@ -362,6 +405,9 @@ export default function Home() {
             <div className="mb-6">
               <p className="text-gray-600 text-lg">スコア</p>
               <p className="text-6xl font-bold text-red-500">{score}/{totalWords}</p>
+              {bonusScore > 0 && (
+                <p className="text-2xl font-bold text-purple-500 mt-2">+{bonusScore} ボーナス</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-8 mt-8">
               <div>
@@ -373,9 +419,15 @@ export default function Home() {
                 <p className="text-3xl font-bold text-red-400">{errors}</p>
               </div>
             </div>
-            <div className="mt-8">
-              <p className="text-gray-600">正確率</p>
-              <p className="text-3xl font-bold text-blue-500">{accuracy}%</p>
+            <div className="grid grid-cols-2 gap-8 mt-8">
+              <div>
+                <p className="text-gray-600">正確率</p>
+                <p className="text-3xl font-bold text-blue-500">{accuracy}%</p>
+              </div>
+              <div>
+                <p className="text-gray-600">最大コンボ</p>
+                <p className="text-3xl font-bold text-purple-500">{maxCombo}</p>
+              </div>
             </div>
             {perfectClear && (
               <div className="mt-8 p-4 bg-yellow-100 rounded-2xl">
@@ -397,7 +449,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-orange-50 flex items-center justify-center">
+    <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
+      combo >= 20 ? 'bg-gradient-to-b from-yellow-100 to-orange-200' :
+      combo >= 10 ? 'bg-gradient-to-b from-purple-100 to-pink-100' :
+      combo >= 5 ? 'bg-gradient-to-b from-blue-100 to-indigo-100' :
+      'bg-gradient-to-b from-red-50 to-orange-50'
+    }`}>
       <div className="w-full max-w-4xl px-4">
         <div className="flex justify-between items-center mb-12">
           <div className="text-2xl font-bold text-gray-700">
@@ -407,14 +464,34 @@ export default function Home() {
             スコア: <span className="text-red-500">{score}/{totalWords}</span>
           </div>
           <div className="text-2xl font-bold text-gray-700">
-            時間: <span className="text-blue-500">{timeLeft}秒</span>
+            コンボ: <span className={`${combo >= 10 ? 'text-yellow-500 animate-pulse' : combo >= 5 ? 'text-purple-500' : 'text-blue-500'}`}>{combo}</span>
           </div>
           <div className="text-2xl font-bold text-gray-700">
-            ミス: <span className="text-red-400">{errors}</span>
+            時間: <span className="text-blue-500">{timeLeft}秒</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-16 text-center">
+        <div className={`bg-white rounded-3xl shadow-2xl p-16 text-center relative transition-all duration-300 ${
+          combo >= 20 ? 'ring-8 ring-yellow-400 shadow-yellow-500/50' :
+          combo >= 10 ? 'ring-4 ring-purple-400 shadow-purple-500/50' :
+          combo >= 5 ? 'ring-2 ring-blue-400' : ''
+        }`}>
+          {/* コンボブレイクアニメーション */}
+          {showComboBreak && (
+            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-50 rounded-3xl animate-pulse">
+              <p className="text-6xl font-bold text-red-500">COMBO BREAK!</p>
+            </div>
+          )}
+
+          {/* コンボボーナス表示 */}
+          {combo >= 3 && (
+            <div className="mb-4">
+              <p className="text-2xl font-bold text-purple-600 animate-bounce">
+                {combo}連続! +{calculateComboBonus(combo)}ボーナス
+              </p>
+            </div>
+          )}
+
           {/* 単語ごとの制限時間メーター */}
           <div className="mb-8">
             <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">

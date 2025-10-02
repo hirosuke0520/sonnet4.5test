@@ -437,12 +437,20 @@ export default function Home() {
               </div>
             )}
           </div>
-          <button
-            onClick={() => setGameState('menu')}
-            className="bg-red-500 hover:bg-red-600 text-white font-bold text-xl px-10 py-3 rounded-full transition-colors shadow-lg"
-          >
-            メニューに戻る
-          </button>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => startGame(difficulty)}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl px-10 py-3 rounded-full transition-colors shadow-lg"
+            >
+              もう一度
+            </button>
+            <button
+              onClick={() => setGameState('menu')}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold text-xl px-10 py-3 rounded-full transition-colors shadow-lg"
+            >
+              メニューに戻る
+            </button>
+          </div>
         </div>
       </div>
     );
